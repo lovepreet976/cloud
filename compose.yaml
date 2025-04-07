@@ -1,0 +1,47 @@
+services:
+  server:
+    build:
+      context: .
+    environment:
+      NODE_ENV: development
+    ports:
+      - 3000:3000 #local:container
+    volumes:
+      - ./:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - express-postgres
+  db:
+    image: postgres
+    restart: always
+    user: postgres
+    secrets:
+      - db-password
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=notejam
+      - POSTGRES_PASSWORD_FILE=/run/secrets/db-password
+    networks:
+      - express-postgres
+    expose:
+      - 5431 #to access on local machine localhost:5431 in postgres
+    ports:
+      - 5431:5432 #local:container
+    healthcheck:
+      test: [ "CMD", "pg_isready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+networks:
+    express-postgres:
+      name: notejam-app-express-postgres
+      driver: bridge
+volumes:
+  db-data:
+secrets:
+  db-password:
+    file: db/password.txt
